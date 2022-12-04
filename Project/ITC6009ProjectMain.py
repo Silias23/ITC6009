@@ -56,13 +56,7 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
 
         keepWidth = w/img.shape[1]*100 > 1.6 and w/img.shape[1]*100 < 11
         keepHeight = h/img.shape[0]*100 > 20 and h/img.shape[0]*100 < 50
-        keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.6
-
-        #debug components
-        # for i in range(0,ret):
-        #     print(f'Width Component{i}:{stats[i, cv2.CC_STAT_WIDTH]/img.shape[1]*100}')
-        #     print(f'Height Component{i}:{stats[i, cv2.CC_STAT_HEIGHT]/img.shape[0]*100}')
-        #     print(f'Area Component{i}:{stats[i, cv2.CC_STAT_AREA]/img.size*100}')
+        keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.66
 
         # clone our original image (so we can draw on it) and then draw
         # a bounding box surrounding the connected component along with
@@ -73,9 +67,9 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
 
         componentMask = (labels == i).astype("uint8") * 255
         # show our output image and connected component mask
-        cv2.imshow("Output", output)
-        cv2.imshow("Connected Component", componentMask)
-        cv2.waitKey(0)
+        # cv2.imshow("Output", output)
+        # cv2.imshow("Connected Component", componentMask)
+        # cv2.waitKey(0)
 
         if all((keepWidth, keepHeight, keepArea)):
             # construct a mask for the current connected component and
@@ -83,6 +77,15 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
             print(f"[INFO] keeping connected component '{i+1}'")
             componentMask = (labels == i).astype("uint8") * 255
             mask = cv2.bitwise_or(mask, componentMask)
+        else:
+            print('Component Rejected. Reason:')
+            if not keepWidth:
+                print(f'Width: {w/img.shape[1]*100}')
+            if not keepHeight:
+                print(f'Height: {h/img.shape[0]*100}')
+            if not keepArea:
+                print(f'Area: {area/img.size*100}')
+
     return mask    
 
 
@@ -118,10 +121,7 @@ def ocr(path):
 def main():
 
     # Read image from which text needs to be extracted
-    image = cv2.imread("Project\LicensePlates\griekenland75.jpg")
-
-
-
+    image = cv2.imread("Project\LicensePlates\\123.png")
 
     impath = 'Project\Results\Tracked.jpg'
     respath = 'Project\Results\Recognized.txt'
@@ -133,12 +133,12 @@ def main():
     # Performing OTSU threshold
     ret, otsuthresh = otsuthreshold(gray)
 
-    cv2.imshow('gray',gray)
-    cv2.imshow('OTSU Thresholded',otsuthresh)
-    cv2.waitKey(0)
-    thresh = erode(otsuthresh,2)
-    thresh = dilate(thresh,2)
-
+    # cv2.imshow('gray',gray)
+    # cv2.imshow('OTSU Thresholded',otsuthresh)
+    # cv2.waitKey(0)
+    thresh = erode(otsuthresh,1)
+    thresh = dilate(thresh,1)
+ 
     #cv2.imshow('thresh',thresh)
     #cv2.waitKey(0)
     #thresh = cv2.bitwise_not(thresh)
