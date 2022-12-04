@@ -107,9 +107,13 @@ def writeResults(result,path):
             if detection[2] > 0.45:
                 file = open(path, "a")
                 file.write(detection[1])
-        file.write(' ' + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-        file.write('\n')
-        file.close()
+        try:
+            file.write(' ' + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+            file.write('\n')
+            file.close()
+        except:
+            print('No license number characters were identified')
+        
      
 
 def ocr(path):
@@ -127,42 +131,43 @@ def resize(img,scale):
     return resized
 
 def main():
-
-    # Read image from which text needs to be extracted
-    image = cv2.imread("Project\LicensePlates\\123.png")
-    image = resize(image,200)
-    impath = 'Project\Results\Tracked.jpg'
-    respath = 'Project\Results\Recognized.txt'
-    # Preprocessing the image starts
- 
-    # Convert the image to gray scale
-    gray = grayscale(image)
+    for picture in os.listdir('Project\LicensePlates'):
+        image = cv2.imread(f"Project\LicensePlates\{picture}")
+        # Read image from which text needs to be extracted
+        # image = cv2.imread("Project\LicensePlates\griekenland75.jpg")
+        image = resize(image,200)
+        impath = 'Project\Results\Tracked.jpg'
+        respath = 'Project\Results\Recognized.txt'
+        # Preprocessing the image starts
     
-    # Performing OTSU threshold
-    ret, otsuthresh = otsuthreshold(gray)
+        # Convert the image to gray scale
+        gray = grayscale(image)
+        
+        # Performing OTSU threshold
+        ret, otsuthresh = otsuthreshold(gray)
 
-    # cv2.imshow('gray',gray)
-    # cv2.imshow('OTSU Thresholded',otsuthresh)
-    # cv2.waitKey(0)
-    thresh = erode(otsuthresh,1)
-    thresh = dilate(thresh,1)
- 
-    #cv2.imshow('thresh',thresh)
-    #cv2.waitKey(0)
-    #thresh = cv2.bitwise_not(thresh)
-    # cv2.imshow('thresh',thresh)
-    # cv2.waitKey(0)
+        # cv2.imshow('gray',gray)
+        # cv2.imshow('OTSU Thresholded',otsuthresh)
+        # cv2.waitKey(0)
+        thresh = erode(otsuthresh,1)
+        thresh = dilate(thresh,1)
+    
+        #cv2.imshow('thresh',thresh)
+        #cv2.waitKey(0)
+        #thresh = cv2.bitwise_not(thresh)
+        # cv2.imshow('thresh',thresh)
+        # cv2.waitKey(0)
 
-    ret, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
+        ret, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
 
-    mask = examineComponents(ret,labels,stats,centroids,image,thresh)
-    # cv2.imshow("Image", img)
-    # cv2.imshow("Characters", mask)
-    cv2.imwrite(impath,mask)
-    #cv2.waitKey(0)
+        mask = examineComponents(ret,labels,stats,centroids,image,thresh)
+        # cv2.imshow("Image", img)
+        # cv2.imshow("Characters", mask)
+        cv2.imwrite(impath,mask)
+        #cv2.waitKey(0)
 
-    results = ocr(impath)
-    writeResults(results,respath)
+        results = ocr(impath)
+        writeResults(results,respath)
     print('done')
 
 
