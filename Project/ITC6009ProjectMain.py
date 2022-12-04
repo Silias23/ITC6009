@@ -56,7 +56,7 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
 
         keepWidth = w/img.shape[1]*100 > 1.6 and w/img.shape[1]*100 < 11
         keepHeight = h/img.shape[0]*100 > 20 and h/img.shape[0]*100 < 50
-        keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.66
+        keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.70
 
         # clone our original image (so we can draw on it) and then draw
         # a bounding box surrounding the connected component along with
@@ -67,9 +67,10 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
 
         componentMask = (labels == i).astype("uint8") * 255
         # show our output image and connected component mask
+        components = np.vstack((output,cv2.cvtColor(componentMask, cv2.COLOR_GRAY2RGB)))
         # cv2.imshow("Output", output)
-        # cv2.imshow("Connected Component", componentMask)
-        # cv2.waitKey(0)
+        cv2.imshow("Connected Component", components)
+        cv2.waitKey(0)
 
         if all((keepWidth, keepHeight, keepArea)):
             # construct a mask for the current connected component and
@@ -117,12 +118,19 @@ def ocr(path):
     results = reader.readtext(path)
     return results
 
+def resize(img,scale):
+    width = int(img.shape[1] * scale / 100)
+    height = int(img.shape[0] * scale / 100)
+    dim = (width, height)
+    # resize image
+    resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    return resized
 
 def main():
 
     # Read image from which text needs to be extracted
     image = cv2.imread("Project\LicensePlates\\123.png")
-
+    image = resize(image,200)
     impath = 'Project\Results\Tracked.jpg'
     respath = 'Project\Results\Recognized.txt'
     # Preprocessing the image starts
