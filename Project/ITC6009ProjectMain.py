@@ -7,110 +7,159 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import easyocr
+import os
+from datetime import datetime
 #from paddleocr import PaddleOCR
  
 
-# Read image from which text needs to be extracted
-img = cv2.imread("Project\LicensePlates\griekenland102.jpg")
+def grayscale(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
+def otsuthreshold(img):
+    return cv2.threshold(img, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
+
+
+def erode(img,iter):
+    return cv2.erode(img, None, iterations=iter)
+
+
+def dilate(img,iter):
+    return cv2.dilate(img, None, iterations=iter)
  
-# Preprocessing the image starts
- 
-# Convert the image to gray scale
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
- 
-# Performing OTSU threshold
-ret, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
 
-cv2.imshow('gray',gray)
-cv2.imshow('inverted',thresh1)
-cv2.waitKey(0)
-thresh = cv2.erode(thresh1, None, iterations=2)
-thresh = cv2.dilate(thresh, None, iterations=2)
-
-
-#cv2.imshow('thresh',thresh)
-#cv2.waitKey(0)
-# thresh = cv2.bitwise_not(thresh)
-cv2.imshow('thresh',thresh)
-cv2.waitKey(0)
-
-ret, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
-mask = np.zeros(thresh.shape, dtype="uint8")
-
-
-for i in range(0, ret):
-    # if this is the first component then we examine the
-    # *background* (typically we would just ignore this
-    # component in our loop)
-    if i == 0:
-        text = (f"examining component {i+1}/{ret} (background)")
-    # otherwise, we are examining an actual connected component
-    elif stats[i, cv2.CC_STAT_AREA]/img.size*100 < 0.18:
-        text = (f"examining component {i +1}/{ret} (small component)")
-    else:
-        text = (f"examining component {i +1}/{ret}")
-    # print a status message update for the current connected
-    # component
-    print(f"[INFO] {text}")
-    # extract the connected component statistics and centroid for
-    # the current label
-    x = stats[i, cv2.CC_STAT_LEFT]
-    y = stats[i, cv2.CC_STAT_TOP]
-    w = stats[i, cv2.CC_STAT_WIDTH]
-    h = stats[i, cv2.CC_STAT_HEIGHT]
-    area = stats[i, cv2.CC_STAT_AREA]
-    (cX, cY) = centroids[i]
+def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
+    mask = np.zeros(thresh.shape, dtype="uint8")
+    for i in range(0, TotalComponents):
+        # if this is the first component then we examine the
+        # *background* (typically we would just ignore this
+        # component in our loop)
+        if i == 0:
+            text = (f"examining component {i+1}/{TotalComponents} (background)")
+        # otherwise, we are examining an actual connected component
+        elif stats[i, cv2.CC_STAT_AREA]/img.size*100 < 0.18:
+            text = (f"examining component {i +1}/{TotalComponents} (small component)")
+        else:
+            text = (f"examining component {i +1}/{TotalComponents}")
+        # print a status message update for the current connected
+        # component
+        print(f"[INFO] {text}")
+        # extract the connected component statistics and centroid for
+        # the current label
+        x = stats[i, cv2.CC_STAT_LEFT]
+        y = stats[i, cv2.CC_STAT_TOP]
+        w = stats[i, cv2.CC_STAT_WIDTH]
+        h = stats[i, cv2.CC_STAT_HEIGHT]
+        area = stats[i, cv2.CC_STAT_AREA]
+        (cX, cY) = centroids[i]
 
 
-    keepWidth = w/img.shape[1]*100 > 1.6 and w/img.shape[1]*100 < 11
-    keepHeight = h/img.shape[0]*100 > 20 and h/img.shape[0]*100 < 50
-    keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.6
+        keepWidth = w/img.shape[1]*100 > 1.6 and w/img.shape[1]*100 < 11
+        keepHeight = h/img.shape[0]*100 > 20 and h/img.shape[0]*100 < 50
+        keepArea = area/img.size*100 > 0.09 and area/img.size*100 < 0.6
 
-    # for i in range(0,ret):
-    #     print(f'Width Component{i}:{stats[i, cv2.CC_STAT_WIDTH]/img.shape[1]*100}')
-    #     print(f'Height Component{i}:{stats[i, cv2.CC_STAT_HEIGHT]/img.shape[0]*100}')
-    #     print(f'Area Component{i}:{stats[i, cv2.CC_STAT_AREA]/img.size*100}')
+        #debug components
+        # for i in range(0,ret):
+        #     print(f'Width Component{i}:{stats[i, cv2.CC_STAT_WIDTH]/img.shape[1]*100}')
+        #     print(f'Height Component{i}:{stats[i, cv2.CC_STAT_HEIGHT]/img.shape[0]*100}')
+        #     print(f'Area Component{i}:{stats[i, cv2.CC_STAT_AREA]/img.size*100}')
 
-    # clone our original image (so we can draw on it) and then draw
-    # a bounding box surrounding the connected component along with
-    # a circle corresponding to the centroid
-    output = img.copy()
-    cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 3)
-    cv2.circle(output, (int(cX), int(cY)), 4, (0, 0, 255), -1)
+        # clone our original image (so we can draw on it) and then draw
+        # a bounding box surrounding the connected component along with
+        # a circle corresponding to the centroid
+        output = img.copy()
+        cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 3)
+        cv2.circle(output, (int(cX), int(cY)), 4, (0, 0, 255), -1)
 
-    componentMask = (labels == i).astype("uint8") * 255
-    # show our output image and connected component mask
-    cv2.imshow("Output", output)
-    cv2.imshow("Connected Component", componentMask)
-    cv2.waitKey(0)
-
-    if all((keepWidth, keepHeight, keepArea)):
-        # construct a mask for the current connected component and
-        # then take the bitwise OR with the mask 
-        print(f"[INFO] keeping connected component '{i+1}'")
         componentMask = (labels == i).astype("uint8") * 255
-        mask = cv2.bitwise_or(mask, componentMask)
+        # show our output image and connected component mask
+        cv2.imshow("Output", output)
+        cv2.imshow("Connected Component", componentMask)
+        cv2.waitKey(0)
+
+        if all((keepWidth, keepHeight, keepArea)):
+            # construct a mask for the current connected component and
+            # then take the bitwise OR with the mask 
+            print(f"[INFO] keeping connected component '{i+1}'")
+            componentMask = (labels == i).astype("uint8") * 255
+            mask = cv2.bitwise_or(mask, componentMask)
+    return mask    
 
 
-cv2.imshow("Image", img)
-cv2.imshow("Characters", mask)
-cv2.imwrite('Project\Results\Tracked.jpg',mask)
-cv2.waitKey(1)
+def checkResultFile(path):
+    if os.path.isfile(path):
+        return True
+    else:
+        #create the file
+        file = open(path, "w")
+        file.write("")
+        file.close()
+        return True
 
-file = open("Project\Results\Recognized.txt", "w")
-file.write("")
-file.close()
 
-IMAGE_PATH = 'Project\Results\Tracked.jpg'
-reader = easyocr.Reader(['en'])
-result = reader.readtext(IMAGE_PATH)
-for detection in result:
-    if detection[2] > 0.45:
-        file = open("Project\Results\Recognized.txt", "a")
-        file.write(detection[1])
-file.close()
+def writeResults(result,path):
+    if checkResultFile(path):
+        for detection in result:
+            if detection[2] > 0.45:
+                file = open(path, "a")
+                file.write(detection[1])
+        file.write(' ' + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        file.write('\n')
+        file.close()
      
 
-print('done')
+def ocr(path):
+    #IMAGE_PATH = 'Project\Results\Tracked.jpg'
+    reader = easyocr.Reader(['en'])
+    results = reader.readtext(path)
+    return results
 
 
+def main():
+
+    # Read image from which text needs to be extracted
+    image = cv2.imread("Project\LicensePlates\griekenland75.jpg")
+
+
+
+
+    impath = 'Project\Results\Tracked.jpg'
+    respath = 'Project\Results\Recognized.txt'
+    # Preprocessing the image starts
+ 
+    # Convert the image to gray scale
+    gray = grayscale(image)
+    
+    # Performing OTSU threshold
+    ret, otsuthresh = otsuthreshold(gray)
+
+    cv2.imshow('gray',gray)
+    cv2.imshow('OTSU Thresholded',otsuthresh)
+    cv2.waitKey(0)
+    thresh = erode(otsuthresh,2)
+    thresh = dilate(thresh,2)
+
+    #cv2.imshow('thresh',thresh)
+    #cv2.waitKey(0)
+    #thresh = cv2.bitwise_not(thresh)
+    # cv2.imshow('thresh',thresh)
+    # cv2.waitKey(0)
+
+    ret, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
+
+    mask = examineComponents(ret,labels,stats,centroids,image,thresh)
+    # cv2.imshow("Image", img)
+    # cv2.imshow("Characters", mask)
+    cv2.imwrite(impath,mask)
+    #cv2.waitKey(0)
+
+    results = ocr(impath)
+    writeResults(results,respath)
+    print('done')
+
+
+
+if __name__ == '__main__':
+    print(datetime.now())
+    main()
+    print(datetime.now())
