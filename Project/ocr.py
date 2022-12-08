@@ -30,6 +30,7 @@ def dilate(img,iter):
 
 def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
     mask = np.zeros(thresh.shape, dtype="uint8")
+    # gif = []
     for i in range(0, TotalComponents):
         # if this is the first component then we examine the
         # *background* (typically we would just ignore this
@@ -67,10 +68,11 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
 
         componentMask = (labels == i).astype("uint8") * 255
         # show our output image and connected component mask
-        #components = np.vstack((output,cv2.cvtColor(componentMask, cv2.COLOR_GRAY2RGB)))
-        # cv2.imshow("Output", output)
-        # cv2.imshow("Connected Component", components)
-        # cv2.waitKey(0)
+        # components = np.vstack((output,cv2.cvtColor(componentMask, cv2.COLOR_GRAY2RGB)))
+        # gif.append(components)
+        #cv2.imshow("Output", output)
+        #cv2.imshow("Connected Component", components)
+        #cv2.waitKey(0)
 
         if all((keepWidth, keepHeight, keepArea)):
             # construct a mask for the current connected component and
@@ -86,6 +88,16 @@ def examineComponents(TotalComponents,labels,stats,centroids,img,thresh):
         #         print(f'Height: {h/img.shape[0]*100}')
         #     if not keepArea:
         #         print(f'Area: {area/img.size*100}')
+
+
+    # #Create gif example
+    # import imageio
+    # filename = 'test.gif'
+    # mask1 = np.vstack((img,cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)))
+    # for i in range(6):
+    #     gif.append(mask1)
+    # imageio.mimsave('video.gif', gif, fps=3)
+    
 
     return mask    
 
@@ -116,9 +128,8 @@ def writeResults(result,path):
         
      
 
-def ocr(path):
+def ocr(path,reader):
     #IMAGE_PATH = 'Project\Results\Tracked.jpg'
-    reader = easyocr.Reader(['en'])
     results = reader.readtext(path)
     return results
 
@@ -130,15 +141,32 @@ def resize(img,scale):
     resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
     return resized
 
-def main(img):
+def findLicenses(reader):
+    for i in range(len(os.listdir('Results\TrackedPlates'))):
+        result = ocr(f'Results\TrackedPlates\Tracked{i}.jpg',reader)
+        writeResults(result,'Results\Recognized.txt')
+
+def cleandir():
+    try:
+        if len(os.listdir('Results\TrackedPlates')) > 0:
+            for file in os.listdir('Results\TrackedPlates'):
+                os.remove('Results\TrackedPlates\\'+file)
+            os.remove('Results\Recognized.txt')
+        os.removedirs('Results\TrackedPlates')
+        os.makedirs('Results\TrackedPlates')
+    except:
+        os.makedirs('Results\TrackedPlates')
+
+
+def main(img,c=0):
 #for picture in os.listdir('Project\LicensePlates'):
     #image = cv2.imread(f"Project\LicensePlates\{picture}")
     # Read image from which text needs to be extracted
     # image = cv2.imread("Project\LicensePlates\griekenland75.jpg")
     image = img
     image = resize(image,200)
-    impath = 'Project\Results\Tracked.jpg'
-    respath = 'Project\Results\Recognized.txt'
+    impath = f'Results\TrackedPlates\Tracked{c}.jpg'
+    respath = 'Results\Recognized.txt'
     # Preprocessing the image starts
 
     # Convert the image to gray scale
@@ -162,6 +190,7 @@ def main(img):
     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
 
     mask = examineComponents(ret,labels,stats,centroids,image,thresh)
+    
     # cv2.imshow("Image", img)
     # cv2.imshow("Characters", mask)
     cv2.imwrite(impath,mask)
