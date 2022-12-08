@@ -16,7 +16,7 @@ def main():
     ocr.findLicenses(reader)
     plate = freq.find_frequency()
     print(plate)
-"hi"
+
 
 
 if __name__ == '__main__':

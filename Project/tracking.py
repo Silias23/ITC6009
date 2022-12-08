@@ -175,6 +175,7 @@ class plateRecognition:
         
         #imageio.mimsave('video.gif', gif, fps=20)
         cap.release()
+        cv2.destroyAllWindows()
 
 
 
