@@ -16,8 +16,12 @@ def main():
     ocr.findLicenses(reader)
     plate = freq.find_frequency()
     print(plate)
+    f = open("plate.txt", "w")
+    f.write(plate)
+    f.close()
 
 
 
 if __name__ == '__main__':
     main()
+

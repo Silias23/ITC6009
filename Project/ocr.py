@@ -6,10 +6,9 @@ https://stackoverflow.com/questions/72381645/python-tesseract-license-plate-reco
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import easyocr
 import os
 from datetime import datetime
-#from paddleocr import PaddleOCR
+
  
 
 def grayscale(img):
